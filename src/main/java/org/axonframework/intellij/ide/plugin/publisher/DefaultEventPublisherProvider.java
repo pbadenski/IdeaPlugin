@@ -47,14 +47,17 @@ class DefaultEventPublisherProvider implements EventPublisherProvider {
         psiMethods.addAll(findMethods(project, GlobalSearchScope.allScope(project),
                 "org.axonframework.eventsourcing.AbstractEventSourcedEntity", "apply"));
 
-        scanEventPublishers(project, scope, registrar);
-        scanCommandPublishers(project, scope, registrar);
+        GlobalSearchScope scopeNarrowedToJavaSourceFiles =
+                GlobalSearchScope.getScopeRestrictedByFileTypes(scope, StdFileTypes.JAVA);
+        scanEventPublishers(project, scopeNarrowedToJavaSourceFiles, registrar);
+        scanCommandPublishers(project, scopeNarrowedToJavaSourceFiles, registrar);
     }
 
     private void scanCommandPublishers(final Project project, GlobalSearchScope scope, final Registrar registrar) {
         PsiClass commandHandlerAnnotation = findCommandHandlersAnnotation(project);
         if (commandHandlerAnnotation != null) {
-            Query<PsiReference> annotationUsages = ReferencesSearch.search(commandHandlerAnnotation, scope);
+            Query<PsiReference> annotationUsages =
+                    ReferencesSearch.search(commandHandlerAnnotation, scope);
             annotationUsages.forEachAsync(new Processor<PsiReference>() {
                 @Override
                 public boolean process(PsiReference psiReference) {
@@ -125,7 +128,8 @@ class DefaultEventPublisherProvider implements EventPublisherProvider {
 
     private void scanEventPublishers(Project project, GlobalSearchScope scope, final Registrar registrar) {
         for (final PsiMethod method : publisherMethodsPerProject.get(project)) {
-            Query<PsiReference> invocations = ReferencesSearch.search(method, scope);
+            Query<PsiReference> invocations =
+                    MethodReferencesSearch.search(method, scope, false);
             invocations.forEachAsync(new Processor<PsiReference>() {
                 @Override
                 public boolean process(PsiReference psiReference) {
